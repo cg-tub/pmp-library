@@ -10,8 +10,6 @@ namespace pmp {
 SurfaceTriangulation::SurfaceTriangulation(SurfaceMesh& mesh) : mesh_(mesh)
 {
     points_ = mesh_.vertex_property<Point>("v:point");
-    objective_ = MIN_AREA;
-    objective_ = MAX_ANGLE;
 }
 
 void SurfaceTriangulation::triangulate(Objective o)
@@ -79,11 +77,11 @@ void SurfaceTriangulation::triangulate(Face f, Objective o)
             {
                 switch (objective_)
                 {
-                    case MIN_AREA:
+                    case Objective::MIN_AREA:
                         w = weight_[i][m] + compute_weight(i, m, k) +
                             weight_[m][k];
                         break;
-                    case MAX_ANGLE:
+                    case Objective::MAX_ANGLE:
                         w = std::max(
                             weight_[i][m],
                             std::max(compute_weight(i, m, k), weight_[m][k]));
@@ -140,14 +138,9 @@ Scalar SurfaceTriangulation::compute_weight(int i, int j, int k) const
     const Vertex b = vertices_[j];
     const Vertex c = vertices_[k];
 
-    // if one of the potential edges already exists as NON-boundary edge
-    // this would result in an invalid triangulation
-    // -> prevent by giving infinite weight
-    // (this happens for suzanne.obj!)
-    //if (is_interior_edge(a, b) ||
-    //is_interior_edge(b, c) ||
-    //is_interior_edge(c, a))
-    //return std::numeric_limits<Scalar>::max();
+    // If one of the potential edges already exists this would result in an
+    // invalid triangulation. This happens for suzanne.obj. Prevent this by
+    // giving infinite weight.
     if (is_edge(a, b) && is_edge(b, c) && is_edge(c, a))
         return std::numeric_limits<Scalar>::max();
 
@@ -159,14 +152,14 @@ Scalar SurfaceTriangulation::compute_weight(int i, int j, int k) const
     switch (objective_)
     {
         // compute squared triangle area
-        case MIN_AREA:
+        case Objective::MIN_AREA:
             w = sqrnorm(cross(pb - pa, pc - pa));
             break;
 
         // compute one over minimum angle
         // or cosine of minimum angle
         // maximum cosine (which should then be minimized)
-        case MAX_ANGLE:
+        case Objective::MAX_ANGLE:
             Scalar cosa = dot(normalize(pb - pa), normalize(pc - pa));
             Scalar cosb = dot(normalize(pa - pb), normalize(pc - pb));
             Scalar cosc = dot(normalize(pa - pc), normalize(pb - pc));
@@ -180,15 +173,6 @@ Scalar SurfaceTriangulation::compute_weight(int i, int j, int k) const
 bool SurfaceTriangulation::is_edge(Vertex a, Vertex b) const
 {
     return mesh_.find_halfedge(a, b).is_valid();
-}
-
-bool SurfaceTriangulation::is_interior_edge(Vertex a, Vertex b) const
-{
-    Halfedge h = mesh_.find_halfedge(a, b);
-    if (!h.is_valid())
-        return false; // edge does not exist
-    return (!mesh_.is_boundary(h) &&
-            !mesh_.is_boundary(mesh_.opposite_halfedge(h)));
 }
 
 bool SurfaceTriangulation::insert_edge(int i, int j)

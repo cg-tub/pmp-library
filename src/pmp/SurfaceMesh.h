@@ -934,7 +934,7 @@ public:
     SurfaceMesh();
 
     //! destructor
-    ~SurfaceMesh();
+    virtual ~SurfaceMesh();
 
     //! copy constructor: copies \p rhs to \p *this. performs a deep copy of all
     //! properties.
@@ -1038,7 +1038,7 @@ public:
     bool is_empty() const { return n_vertices() == 0; }
 
     //! clear mesh: remove all vertices, edges, faces
-    void clear();
+    virtual void clear();
 
     //! remove unused memory from vectors
     void free_memory();
@@ -1638,11 +1638,12 @@ public:
         return insert_vertex(halfedge(e, 0), v);
     }
 
-    //! Subdivide the edge \p e = (v0,v1) by splitting it into the two edge
+    //! Subdivide the halfedge \p h = (v0,v1) by splitting it into the two halfedges
     //! (v0,v) and (v,v1). Note that this function does not introduce any
-    //! other edge or faces. It simply splits the edge. Returns halfedge
-    //! that points to \p p.  \sa insert_vertex(Edge, Point) \sa
-    //! insert_vertex(Edge, Vertex)
+    //! other edge or faces. It simply splits the edge. Returns the halfedge
+    //! that points from v1 to \p v.
+    //! \sa insert_vertex(Edge, Point)
+    //! \sa insert_vertex(Edge, Vertex)
     Halfedge insert_vertex(Halfedge h0, Vertex v);
 
     //! find the halfedge from start to end
@@ -1659,14 +1660,6 @@ public:
     //! returns whether the mesh a quad mesh. this function simply tests
     //! each face, and therefore is not very efficient.
     bool is_quad_mesh() const;
-
-    //! triangulate the entire mesh, by calling triangulate(Face) for each face.
-    //! \sa triangulate(Face)
-    void triangulate();
-
-    //! triangulate the face \p f.
-    //! \sa triangulate()
-    void triangulate(Face f);
 
     //! returns whether collapsing the halfedge \p v0v1 is topologically legal.
     //! \attention This function is only valid for triangle meshes.
@@ -1725,9 +1718,9 @@ public:
     //! \sa split(Edge, Point)
     Halfedge split(Edge e, Vertex v);
 
-    //! insert edge between the to-vertices v0 of h0 and v1 of h1.
+    //! insert edge between the to-vertices v0 of \p h0 and v1 of \p h1.
     //! returns the new halfedge from v0 to v1.
-    //! \attention h0 and h1 have to belong to the same face
+    //! \attention \p h0 and \p h1 have to belong to the same face
     Halfedge insert_edge(Halfedge h0, Halfedge h1);
 
     //! Check whether flipping edge \p e is topologically
@@ -1769,15 +1762,15 @@ public:
     //! position of a vertex
     Point& position(Vertex v) { return vpoint_[v]; }
 
-    //! vector of point positions, re-implemented from \p GeometryObject
+    //! \return vector of point positions
     std::vector<Point>& positions() { return vpoint_.vector(); }
 
     //! compute the bounding box of the object
-    BoundingBox bounds()
+    BoundingBox bounds() const
     {
         BoundingBox bb;
-        for (auto p : positions())
-            bb += p;
+        for (auto v : vertices())
+            bb += position(v);
         return bb;
     }
 

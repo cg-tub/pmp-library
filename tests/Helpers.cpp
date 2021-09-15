@@ -7,6 +7,7 @@
 #include "pmp/algorithms/SurfaceRemeshing.h"
 #include "pmp/algorithms/SurfaceFeatures.h"
 #include "pmp/algorithms/SurfaceSubdivision.h"
+#include "pmp/algorithms/SurfaceTriangulation.h"
 
 namespace pmp {
 
@@ -73,7 +74,8 @@ SurfaceMesh hemisphere()
 
         // generate quad sphere mesh and triangulate it
         mesh = SurfaceFactory::quad_sphere(3);
-        mesh.triangulate();
+        SurfaceTriangulation tr(mesh);
+        tr.triangulate();
 
         // delete lower half
         for (auto v : mesh.vertices())
@@ -106,6 +108,30 @@ SurfaceMesh subdivided_icosahedron()
         subdiv.loop();
     }
     return icosahedron_mesh;
+}
+
+SurfaceMesh l_shape()
+{
+    SurfaceMesh mesh;
+
+    std::vector<Vertex> vertices;
+
+    vertices.push_back(mesh.add_vertex(Point(0.0, 0.0, 0.0)));
+    vertices.push_back(mesh.add_vertex(Point(0.5, 0.0, 0.0)));
+    vertices.push_back(mesh.add_vertex(Point(1.0, 0.0, 0.0)));
+    vertices.push_back(mesh.add_vertex(Point(1.0, 0.5, 0.0)));
+    vertices.push_back(mesh.add_vertex(Point(0.5, 0.5, 0.0)));
+    vertices.push_back(mesh.add_vertex(Point(0.5, 1.0, 0.0)));
+    vertices.push_back(mesh.add_vertex(Point(0.5, 1.5, 0.0)));
+    vertices.push_back(mesh.add_vertex(Point(0.5, 2.0, 0.0)));
+    vertices.push_back(mesh.add_vertex(Point(0.0, 2.0, 0.0)));
+    vertices.push_back(mesh.add_vertex(Point(0.0, 1.5, 0.0)));
+    vertices.push_back(mesh.add_vertex(Point(0.0, 1.0, 0.0)));
+    vertices.push_back(mesh.add_vertex(Point(0.0, 0.5, 0.0)));
+
+    mesh.add_face(vertices);
+
+    return mesh;
 }
 
 } // namespace pmp

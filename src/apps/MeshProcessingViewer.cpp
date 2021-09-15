@@ -12,6 +12,8 @@
 #include <pmp/algorithms/SurfaceGeodesic.h>
 #include <pmp/algorithms/SurfaceHoleFilling.h>
 #include <pmp/algorithms/SurfaceFactory.h>
+#include <pmp/algorithms/SurfaceTriangulation.h>
+#include <pmp/algorithms/DifferentialGeometry.h>
 
 #include <imgui.h>
 
@@ -19,9 +21,6 @@ MeshProcessingViewer::MeshProcessingViewer(const char* title, int width,
                                            int height)
     : MeshViewer(title, width, height), smoother_(mesh_)
 {
-    //crease_angle_ = 90.0;
-    //set_draw_mode("Hidden Line");
-
     // add help items
     add_help_item("O", "Flip mesh orientation", 5);
 }
@@ -33,6 +32,17 @@ void MeshProcessingViewer::keyboard(int key, int scancode, int action, int mods)
 
     switch (key)
     {
+        case GLFW_KEY_D: // dualize mesh
+        {
+            dual(mesh_);
+            update_mesh();
+            break;
+        }
+        case GLFW_KEY_H:
+        {
+            set_draw_mode("Hidden Line");
+            break;
+        }
         case GLFW_KEY_O: // change face orientation
         {
             SurfaceMeshGL new_mesh;
@@ -80,6 +90,13 @@ void MeshProcessingViewer::keyboard(int key, int scancode, int action, int mods)
             }
             break;
         }
+        case GLFW_KEY_T:
+        {
+            SurfaceTriangulation tr(mesh_);
+            tr.triangulate();
+            update_mesh();
+            break;
+        }
         case GLFW_KEY_1:
         case GLFW_KEY_2:
         case GLFW_KEY_3:
@@ -88,6 +105,7 @@ void MeshProcessingViewer::keyboard(int key, int scancode, int action, int mods)
         case GLFW_KEY_6:
         case GLFW_KEY_7:
         case GLFW_KEY_8:
+        case GLFW_KEY_9:
         {
             switch (key)
             {
@@ -114,6 +132,9 @@ void MeshProcessingViewer::keyboard(int key, int scancode, int action, int mods)
                     break;
                 case GLFW_KEY_8:
                     mesh_.assign(SurfaceFactory::uv_sphere());
+                    break;
+                case GLFW_KEY_9:
+                    mesh_.assign(SurfaceFactory::torus());
                     break;
             }
 

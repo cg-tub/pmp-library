@@ -25,7 +25,15 @@ Viewer::Viewer(const char* title, int width, int height)
 
 void Viewer::load_mesh(const char* filename)
 {
-    MeshViewer::load_mesh(filename);
+    try
+    {
+        MeshViewer::load_mesh(filename);
+    }
+    catch (const IOException& e)
+    {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return;
+    }
 
     // alloc tex coordinates
     mesh_.vertex_property<TexCoord>("v:tex", TexCoord(0, 0));

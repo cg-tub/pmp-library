@@ -1,11 +1,9 @@
 project(pmp-library)
 
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.16.3)
 
 cmake_policy(SET CMP0048 NEW)
-if(${CMAKE_VERSION} VERSION_GREATER "3.11.0")
-  cmake_policy(SET CMP0072 NEW)
-endif()
+cmake_policy(SET CMP0072 NEW)
 
 set(PMP_MAJOR_VERSION 1)
 set(PMP_MINOR_VERSION 2)
@@ -69,6 +67,7 @@ if(PMP_BUILD_VIS)
     add_definitions(-DGLEW_STATIC)
     add_library(glew STATIC ${GLEW_SOURCE_DIR}/src/glew.c
                             ${GLEW_SOURCE_DIR}/include)
+    set_property(TARGET glew PROPERTY POSITION_INDEPENDENT_CODE ON)
     target_link_libraries(glew ${GLFW_LIBRARIES})
   else()
     # GLEW and GLFW are built-in
@@ -102,23 +101,17 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug"
   set(CMAKE_CXX_FLAGS "-g -O0 --coverage")
 
   # find required tools
-  find_program(GCOV gcov)
   find_program(LCOV lcov)
   find_program(GENHTML genhtml)
 
   # add coverage target
   add_custom_target(
     coverage
-    # cleanup old counters
-    ${LCOV} --directory . --zerocounters
-    # run test command
-    COMMAND make test
-    # gather data, generate report
-    COMMAND ${LCOV} --directory . --capture --output-file coverage.info
-    COMMAND ${LCOV} --remove coverage.info '*/external/*' '*/tests/*' '/usr/*'
-            --output-file coverage.info.cleaned
-    COMMAND ${GENHTML} --demangle-cpp -o coverage coverage.info.cleaned
-    COMMAND ${CMAKE_COMMAND} -E remove coverage.info coverage.info.cleaned
+    # gather data
+    COMMAND ${LCOV} --directory . --capture --exclude '*/external/*' --exclude
+            '*/tests/*' --exclude '/usr/*' --output-file coverage.info
+    # generate report
+    COMMAND ${GENHTML} --demangle-cpp -o coverage coverage.info
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endif()
 

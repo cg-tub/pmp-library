@@ -1,14 +1,6 @@
-find_package(Doxygen)
+find_package(Doxygen 1.9.1)
 
-if(DOXYGEN_FOUND STREQUAL "NO")
-  message(STATUS "Doxygen not found. Please get a copy http://www.doxygen.org")
-else()
-
-  if("${DOXYGEN_VERSION}" VERSION_LESS 1.8.3.1)
-    message(
-      STATUS "Doxygen version too old. Please get a copy http://www.doxygen.org"
-    )
-  endif()
+if(DOXYGEN_FOUND)
 
   # prepare doxygen configuration file
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in

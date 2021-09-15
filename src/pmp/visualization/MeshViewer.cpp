@@ -43,7 +43,7 @@ void MeshViewer::load_mesh(const char* filename)
     catch (const IOException& e)
     {
         std::cerr << "Error: " << e.what() << std::endl;
-        return;
+        throw;
     }
 
     // update scene center and bounds
@@ -76,7 +76,7 @@ void MeshViewer::load_matcap(const char* filename)
     catch (const IOException& e)
     {
         std::cerr << e.what() << std::endl;
-        return;
+        throw;
     }
     set_draw_mode("Texture");
 }
@@ -92,7 +92,7 @@ void MeshViewer::load_texture(const char* filename, GLint format,
     catch (const IOException& e)
     {
         std::cerr << e.what() << std::endl;
-        return;
+        throw;
     }
 
     set_draw_mode("Texture");
