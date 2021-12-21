@@ -21,7 +21,8 @@ void usage_and_exit()
               << "-v verbose mode to echo input parameters and report mesh statistics (1, 0. 0 by default)\n"
               << "-b write the output mesh as binary data (1, 0. 0 by default)\n\n"
               << "Note\n----\n"
-              << "The interaural center of the head-mesh must be at the origin of coordinates and the mesh must view in positive x-direction.\n\n"
+              << "The interaural center of the head-mesh must be at the origin of coordinates and the mesh must view in positive x-direction."
+              << "The input mesh is triangulated if if contains non-triangular faces\n\n"
               << "Reference\n---------\n"
               << "T. Palm, S. Koch, F. Brinkmann, and M. Alexa, “Curvature-adaptive mesh grading for numerical approximation of head-related transfer functions,” in DAGA 2021, Vienna, Austria, pp. 1111-1114.\n\n";
 
@@ -90,8 +91,7 @@ int main(int argc, char** argv)
 
     // echo input -------------------------------------------------------------
     if (verbose)
-    {   std::cout << "Parameters\n----------\n" << std::endl;
-        std::cout << "input: " << input << std::endl;
+    {   std::cout << "\ninput: " << input << std::endl;
         std::cout << "output: " << output << std::endl;
         std::cout << "side: " << ear << std::endl;
         std::cout << "min. edge length: " << min << std::endl;
@@ -111,6 +111,8 @@ int main(int argc, char** argv)
         exit(1);
     }
 
+    const int faces_before = mesh.n_faces();
+
     // remeshing --------------------------------------------------------------
     SurfaceRemeshing(mesh).adaptive_remeshing(
                     min,  // min length
@@ -120,6 +122,13 @@ int main(int argc, char** argv)
                     true,
                     ear
                     );
+
+    // echo remeshing stats ---------------------------------------------------
+    if (verbose)
+    {
+        std::cout << "\nFaces before remeshing: " << faces_before << std::endl;
+        std::cout << "Faces after remeshing:  " << mesh.n_faces() << std::endl;
+    }
 
     // write output mesh ------------------------------------------------------
     IOFlags flags;
