@@ -167,17 +167,17 @@ void SurfaceRemeshing::preprocessing(std::string ear)
         std::string unit = "mm";
         BoundingBox b2;
 
+        // check the size of head to determine the unit
+        if ((bb.max()[1] - bb.min()[1]) < 1.0 )
+        {
+            unit = "m";
+            max_edge_length_ *= 0.001;
+            min_edge_length_ *= 0.001;
+            approx_error_ *= 0.001;
+        }
+
         if (ear != "none")
         {
-              
-            // check the size of head to determine the unit
-            if ((bb.max()[1] - bb.min()[1]) < 1.0 )
-            {
-                unit = "m";
-                max_edge_length_ *= 0.001;
-                min_edge_length_ *= 0.001;
-                approx_error_ *= 0.001;
-            }
 
             // create a smaller bounding box close to the ears.
             // this is necessary for head+torso mesh, because otherwise the shoulders would

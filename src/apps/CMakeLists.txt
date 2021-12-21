@@ -85,6 +85,8 @@ else()
 
   # build mconvert only on unix / OS-X
   if(NOT WIN32)
+    add_executable(hrtf_mesh_grading hrtf-mesh-grading.cpp)
+    target_link_libraries(hrtf_mesh_grading pmp)
     add_executable(mconvert mconvert.cpp)
     target_link_libraries(mconvert pmp)
   endif()

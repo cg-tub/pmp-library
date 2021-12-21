@@ -371,7 +371,7 @@ void MeshProcessingViewer::process_imgui()
         ImGui::SameLine();
         ImGui::RadioButton("left", &ear_idx, 0);
 
-        if (ImGui::Button("Hybrid HRTF Mesh Grading"))
+        if (ImGui::Button("HRTF Mesh Grading"))
         {
             try
             {
