@@ -9,9 +9,20 @@ using namespace pmp;
 
 void usage_and_exit()
 {
-    std::cerr << "Usage:\nhrtf-mesh-grading -x <minimum edge lenght> -y <maximum edge length> -e <error> -z <\"left\" or \"right\"> -i <input> -o <output>\n\nOptions\n"
-              << "edge lengths should be given in mm"
-              << "\n";
+    std::cerr << "\nExample usage\n-------------\n"
+              << "hrtf-mesh-grading -x 0.5 -y 10 -s 'left' -i head.ply -o head_left.ply\n\n"
+              << "Parameters\n----------\n"
+              << "-x the minimum edge length in mm\n"
+              << "-y the maximum edge length in mm\n"
+              << "-e the maximum remeshing in mm (Optional. The minimum edge length by default)\n"
+              << "-s the side at which the mesh resolution will be high ('left' or 'right')\n"
+              << "-i the path to the input mesh\n"
+              << "-o the path to the output mesh\n\n"
+              << "Note\n----\n"
+              << "The interaural center of the head-mesh must be at the origin of coordinates and the mesh must view in positive x-direction.\n\n"
+              << "Reference\n---------\n"
+              << "T. Palm, S. Koch, F. Brinkmann, and M. Alexa, “Curvature-adaptive mesh grading for numerical approximation of head-related transfer functions,” in DAGA 2021, Vienna, Austria, pp. 1111-1114.\n\n";
+
     exit(1);
 }
 
@@ -21,11 +32,11 @@ int main(int argc, char** argv)
     const char* input = nullptr;
     const char* output = nullptr;
     float min, max, err;
-    char* ear = "none";
+    const char* ear = nullptr;
 
     // parse command line parameters
     int c;
-    while ((c = getopt(argc, argv, "x:y:e:z:i:o:")) != -1)
+    while ((c = getopt(argc, argv, "x:y:e:s:i:o:")) != -1)
     {
         switch (c)
         {
@@ -41,7 +52,7 @@ int main(int argc, char** argv)
                 err = std::stof(optarg);
                 break;
 
-            case 'z':
+            case 's':
                 ear = optarg;
                 break;
 
@@ -83,7 +94,7 @@ int main(int argc, char** argv)
                     10U,
                     true,
                     ear
-                    ); 
+                    );
 
     // write output mesh
     IOFlags flags;
