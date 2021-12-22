@@ -10,7 +10,7 @@ using namespace pmp;
 void usage_and_exit()
 {
     std::cerr << "\nExample usage\n-------------\n"
-              << "hrtf-mesh-grading -x 0.5 -y 10 -s 'left' -i head.ply -o head_left.ply\n\n"
+              << "hrtf-mesh-grading -x 0.5 -y 10 -s 'left' -i head.ply -o head_left.ply -v\n\n"
               << "Parameters\n----------\n"
               << "-x the minimum edge length in mm\n"
               << "-y the maximum edge length in mm\n"
@@ -18,8 +18,8 @@ void usage_and_exit()
               << "-s the side at which the mesh resolution will be high ('left' or 'right')\n"
               << "-i the path to the input mesh\n"
               << "-o the path to the output mesh\n"
-              << "-v verbose mode to echo input parameters and report mesh statistics (1, 0. 0 by default)\n"
-              << "-b write the output mesh as binary data (1, 0. 0 by default)\n\n"
+              << "-v verbose mode to echo input parameters and report mesh statistics (optional)\n"
+              << "-b write the output mesh as binary data (optional)\n\n"
               << "Note\n----\n"
               << "The interaural center of the head-mesh must be at the origin of coordinates and the mesh must view in positive x-direction."
               << "The input mesh is triangulated if if contains non-triangular faces\n\n"
@@ -40,7 +40,7 @@ int main(int argc, char** argv)
 
     // parse command line parameters ------------------------------------------
     int c;
-    while ((c = getopt(argc, argv, "x:y:e:s:i:o:v:")) != -1)
+    while ((c = getopt(argc, argv, "x:y:e:s:i:o:vi:bi:")) != -1)
     {
         switch (c)
         {
@@ -69,7 +69,11 @@ int main(int argc, char** argv)
                 break;
 
             case 'v':
-                verbose = optarg;
+                verbose = true;
+                break;
+
+            case 'b':
+                binary = true;
                 break;
 
             default:
