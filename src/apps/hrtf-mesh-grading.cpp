@@ -14,7 +14,7 @@ void usage_and_exit()
               << "Parameters\n----------\n"
               << "-x the minimum edge length in mm\n"
               << "-y the maximum edge length in mm\n"
-              << "-e the maximum remeshing in mm (Optional. The minimum edge length by default)\n"
+              << "-e the maximum geometrical error in mm (Optional. The minimum edge length by default)\n"
               << "-s the side at which the mesh resolution will be high ('left' or 'right')\n"
               << "-i the path to the input mesh\n"
               << "-o the path to the output mesh\n"
