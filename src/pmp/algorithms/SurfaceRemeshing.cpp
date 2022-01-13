@@ -63,7 +63,10 @@ void SurfaceRemeshing::adaptive_remeshing(Scalar min_edge_length,
                                           Scalar approx_error,
                                           unsigned int iterations,
                                           bool use_projection,
-                                          std::string ear)
+                                          std::string ear,
+                                          Scalar gamma_scaling_left,
+                                          Scalar gamma_scaling_right,
+                                          bool verbose)
 {
     uniform_ = false;
     min_edge_length_ = min_edge_length;
@@ -71,7 +74,7 @@ void SurfaceRemeshing::adaptive_remeshing(Scalar min_edge_length,
     approx_error_ = approx_error;
     use_projection_ = use_projection;
 
-    preprocessing(ear);
+    preprocessing(ear, gamma_scaling_left, gamma_scaling_right, verbose);
 
     for (unsigned int i = 0; i < iterations; ++i)
     {
@@ -91,7 +94,10 @@ void SurfaceRemeshing::adaptive_remeshing(Scalar min_edge_length,
     postprocessing();
 }
 
-void SurfaceRemeshing::preprocessing(std::string ear)
+void SurfaceRemeshing::preprocessing(std::string ear,
+                                     Scalar gamma_scaling_left,
+                                     Scalar gamma_scaling_right,
+                                     bool verbose)
 {
     // properties
     vfeature_ = mesh_.vertex_property<bool>("v:feature", false);
@@ -232,10 +238,17 @@ void SurfaceRemeshing::preprocessing(std::string ear)
             }
         }
 
-        // approximate the blocked ear canals
-        float min_y = b2.min()[1] + (b2.max()[1] - b2.min()[1]) * 0.15; // right
+        // approximate the blocked ear canal positions
+        float min_y = b2.min()[1] + (b2.max()[1] - b2.min()[1]) * gamma_scaling_right; // right
         float min_z = bb.min()[2] + (bb.max()[2] - bb.min()[2]) * 0.22;
-        float max_y = b2.max()[1] - (b2.max()[1] - b2.min()[1]) * 0.15; // left
+        float max_y = b2.max()[1] - (b2.max()[1] - b2.min()[1]) * gamma_scaling_left; // left
+
+        if (verbose){
+            std::cout << "\nestimated ear channel entrance left:   "
+                << max_y << "/0/0 mm (y/x/z)" << std::endl;
+            std::cout << "estimated ear channel entrance right: "
+                << min_y << "/0/0 mm (y/x/z)" << std::endl;
+        }
 
         // now convert per-vertex curvature into target edge length
         for (auto v : mesh_.vertices())
@@ -246,7 +259,7 @@ void SurfaceRemeshing::preprocessing(std::string ear)
 
             if (ear != "none")
             {
-                
+
                 // adjust curvature for mesh in unit mm
                 if (unit == "mm")
                 {
@@ -256,19 +269,19 @@ void SurfaceRemeshing::preprocessing(std::string ear)
                 // y distance of vertex to left and right ear canal
                 float d_r_ear = p[1]-min_y;
                 float d_l_ear = p[1]-max_y;
-                
+
                 // increase edge length at the cutting area to torso
-                if (p[2] < min_z and c > 100) 
+                if (p[2] < min_z and c > 100)
                 {
                     c /= 5;
                 }
-                
+
                 // adjust edgelength based on distance to ipsilateral ear
                 if (ear == "right")
                 {
                     c = c /( 1.5 * sqrt(p[0]*p[0] + p[2]*p[2] + 10*d_r_ear*d_r_ear));
                 }
-                else 
+                else
                 {
                     c = c /( 1.5 * sqrt(p[0]*p[0] + p[2]*p[2] + 10*d_l_ear*d_l_ear));
                 }
