@@ -185,14 +185,6 @@ void SurfaceRemeshing::preprocessing(std::string ear,
             min_edge_length_ *= 0.001;
             approx_error_ *= 0.001;
         }
-        if (unit == "m" && channel_left > 10)
-        {
-            channel_left *= 0.001;
-        }
-        if (unit == "m" && channel_right > 10)
-        {
-            channel_right *= 0.001;
-        } 
 
         if (ear != "none")
         {

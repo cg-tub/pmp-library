@@ -16,7 +16,7 @@ void usage_and_exit()
               << "-y the maximum edge length in mm\n"
               << "-e the maximum geometrical error in mm (Optional. The minimum edge length by default)\n"
               << "-s the side at which the mesh resolution will be high ('left' or 'right')\n"
-              << "-l, r the left and right y-coordinate of the actual ear channel entrances. "
+              << "-l, r the left and right y-coordinate of the actual ear channel entrances in the unit of the input mesh. "
               << "Note that the gamma scaling factors won't be used if the actual positions are given.\n"
               << "-g, h the scaling factor to estimate the y-coordinate of the left (g) and right (h) ear channel entrance (gamma on p. 1112 in Palm et al.). The default is 0.15. "
               << "Use this if the actual ear channel entrance position is not know and the graded mesh contains to large or too small elements in the vicinity of the ear channels. "
