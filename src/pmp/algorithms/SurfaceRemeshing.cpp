@@ -64,6 +64,8 @@ void SurfaceRemeshing::adaptive_remeshing(Scalar min_edge_length,
                                           unsigned int iterations,
                                           bool use_projection,
                                           std::string ear,
+                                          Scalar channel_left,
+                                          Scalar channel_right,
                                           Scalar gamma_scaling_left,
                                           Scalar gamma_scaling_right,
                                           bool verbose)
@@ -74,7 +76,7 @@ void SurfaceRemeshing::adaptive_remeshing(Scalar min_edge_length,
     approx_error_ = approx_error;
     use_projection_ = use_projection;
 
-    preprocessing(ear, gamma_scaling_left, gamma_scaling_right, verbose);
+    preprocessing(ear, channel_left, channel_right, gamma_scaling_left, gamma_scaling_right, verbose);
 
     for (unsigned int i = 0; i < iterations; ++i)
     {
@@ -95,6 +97,8 @@ void SurfaceRemeshing::adaptive_remeshing(Scalar min_edge_length,
 }
 
 void SurfaceRemeshing::preprocessing(std::string ear,
+                                     Scalar channel_left,
+                                     Scalar channel_right,
                                      Scalar gamma_scaling_left,
                                      Scalar gamma_scaling_right,
                                      bool verbose)
@@ -239,15 +243,47 @@ void SurfaceRemeshing::preprocessing(std::string ear,
         }
 
         // approximate the blocked ear canal positions
-        float min_y = b2.min()[1] + (b2.max()[1] - b2.min()[1]) * gamma_scaling_right; // right
+        float min_y;
+        float max_y;
         float min_z = bb.min()[2] + (bb.max()[2] - bb.min()[2]) * 0.22;
-        float max_y = b2.max()[1] - (b2.max()[1] - b2.min()[1]) * gamma_scaling_left; // left
+        if (channel_right == 0.)
+        {
+            min_y = b2.min()[1] + (b2.max()[1] - b2.min()[1]) * gamma_scaling_right; // right 
+        }     
+        else
+        { 
+            min_y = channel_right;
+        }  
+        if (channel_left == 0.)
+        {
+            max_y = b2.max()[1] - (b2.max()[1] - b2.min()[1]) * gamma_scaling_left; // left
+        } 
+        else
+        { 
+            max_y = channel_left;
+        } 
 
         if (verbose){
-            std::cout << "\nestimated ear channel entrance left:   "
-                << max_y << "/0/0 mm (y/x/z)" << std::endl;
-            std::cout << "estimated ear channel entrance right: "
-                << min_y << "/0/0 mm (y/x/z)" << std::endl;
+            if (channel_left != 0.)
+            {
+                std::cout << "\near channel entrance left:   "
+                    << max_y << "/0/0 " << unit << " (y/x/z)" << std::endl; 
+            }
+            else
+            { 
+                std::cout << "\nestimated ear channel entrance left:   "
+                    << max_y << "/0/0 " << unit << " (y/x/z)" << std::endl;
+            } 
+            if (channel_right != 0.)
+            {
+                std::cout << "\near channel entrance right:   "
+                    << min_y << "/0/0 " << unit << " (y/x/z)" << std::endl; 
+            }
+            else
+            { 
+                std::cout << "\nestimated ear channel entrance left:   "
+                    << min_y << "/0/0 " << unit << " (y/x/z)" << std::endl;
+            } 
         }
 
         // now convert per-vertex curvature into target edge length

@@ -16,8 +16,11 @@ void usage_and_exit()
               << "-y the maximum edge length in mm\n"
               << "-e the maximum geometrical error in mm (Optional. The minimum edge length by default)\n"
               << "-s the side at which the mesh resolution will be high ('left' or 'right')\n"
+              << "-l, r the left and right y-coordinate of the actual ear channel entrances in the unit of the input mesh. "
+              << "Note that the gamma scaling factors won't be used if the actual positions are given.\n"
               << "-g, h the scaling factor to estimate the y-coordinate of the left (g) and right (h) ear channel entrance (gamma on p. 1112 in Palm et al.). The default is 0.15. "
-              << "Use this if the graded mesh contains to large or too small elements in the vicinity of the ear channels. Use the verbose flag to echo the gamma parameters."
+              << "Use this if the actual ear channel entrance position is not know and the graded mesh contains to large or too small elements in the vicinity of the ear channels. "
+              << "Use the verbose flag to echo the gamma parameters. "
               << "The estimated positions should have slightly smaller absolute values than the actual ear channel entrances.\n"
               << "-i the path to the input mesh\n"
               << "-o the path to the output mesh\n"
@@ -38,13 +41,15 @@ int main(int argc, char** argv)
     const char* input = nullptr;
     const char* output = nullptr;
     float min, max, err = 0;
+    float channel_left = 0.;
+    float channel_right = 0.;
     float gamma_scaling_left = 2.;
     float gamma_scaling_right = 2.;
     const char* ear = nullptr;
 
     // parse command line parameters ------------------------------------------
     int c;
-    while ((c = getopt(argc, argv, "x:y:e:s:g:h:i:o:vi:bi:")) != -1)
+    while ((c = getopt(argc, argv, "x:y:e:s:l:r:g:h:i:o:vi:bi:")) != -1)
     {
         switch (c)
         {
@@ -62,6 +67,14 @@ int main(int argc, char** argv)
 
             case 's':
                 ear = optarg;
+                break;
+            
+            case 'l':
+                channel_left = std::stof(optarg);
+                break;
+
+            case 'r':
+                channel_right = std::stof(optarg);
                 break;
 
             case 'g':
@@ -121,8 +134,12 @@ int main(int argc, char** argv)
         std::cout << "min. edge length: " << min << std::endl;
         std::cout << "max. edge length: " << max << std::endl;
         std::cout << "max. error: " << err << std::endl;
-        std::cout << "gamma scaling left/right: "
-            << gamma_scaling_left << "/" << gamma_scaling_right << std::endl;
+        if (channel_left == 0. && channel_right == 0.)
+        {
+            std::cout << "gamma scaling left/right: "
+                << gamma_scaling_left << "/" << gamma_scaling_right << std::endl;
+        } 
+
     }
 
     // load input mesh --------------------------------------------------------
@@ -147,6 +164,8 @@ int main(int argc, char** argv)
                     10U,
                     true,
                     ear,
+                    channel_left,
+                    channel_right,
                     gamma_scaling_left, gamma_scaling_right,
                     verbose
                     );
