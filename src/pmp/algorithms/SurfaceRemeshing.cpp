@@ -281,7 +281,7 @@ void SurfaceRemeshing::preprocessing(std::string ear,
             }
             else
             { 
-                std::cout << "\nestimated ear channel entrance left:   "
+                std::cout << "\nestimated ear channel entrance right:   "
                     << min_y << "/0/0 " << unit << " (y/x/z)" << std::endl;
             } 
         }
