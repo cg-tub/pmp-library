@@ -103,6 +103,8 @@ void SurfaceRemeshing::preprocessing(std::string ear,
                                      Scalar gamma_scaling_right,
                                      bool verbose)
 {
+    // HRTF-GRADING: These comments mark (all ?) custom changes
+
     // properties
     vfeature_ = mesh_.vertex_property<bool>("v:feature", false);
     efeature_ = mesh_.edge_property<bool>("e:feature", false);
@@ -177,7 +179,7 @@ void SurfaceRemeshing::preprocessing(std::string ear,
         std::string unit = "mm";
         BoundingBox b2;
 
-        // check the size of head to determine the unit
+        // HRTF-GRADING: check the size of head to determine the unit
         if ((bb.max()[1] - bb.min()[1]) < 1.0 )
         {
             unit = "m";
@@ -185,13 +187,13 @@ void SurfaceRemeshing::preprocessing(std::string ear,
             min_edge_length_ *= 0.001;
             approx_error_ *= 0.001;
         }
+        // HRTF-GRADING: end
 
+        // HRTF-GRADING: create a smaller bounding box close to the ears.
+        // this is necessary for head+torso mesh, because otherwise the
+        // shoulders would determine the max bounding box
         if (ear != "none")
         {
-
-            // create a smaller bounding box close to the ears.
-            // this is necessary for head+torso mesh, because otherwise the shoulders would
-            // determine the max bounding box
             for (auto p : mesh_.positions())
             {
                 if ((p[2] > -0.05 and unit == "m") or (p[2] > -50.0 and unit == "mm"))
@@ -200,6 +202,7 @@ void SurfaceRemeshing::preprocessing(std::string ear,
                 }
             }
         }
+        // HRTF-GRADING: end
 
         // use vsizing_ to store/smooth curvatures to avoid another vertex property
 
@@ -242,55 +245,57 @@ void SurfaceRemeshing::preprocessing(std::string ear,
             }
         }
 
-        // approximate the blocked ear canal positions
+        // HRTF-GRADING: approximate the blocked ear canal positions
         float min_y;
         float max_y;
         float min_z = bb.min()[2] + (bb.max()[2] - bb.min()[2]) * 0.22;
         if (channel_right == 0.)
         {
-            min_y = b2.min()[1] + (b2.max()[1] - b2.min()[1]) * gamma_scaling_right; // right 
-        }     
+            min_y = b2.min()[1] + (b2.max()[1] - b2.min()[1]) * gamma_scaling_right; // right
+        }
         else
-        { 
+        {
             min_y = channel_right;
-        }  
+        }
         if (channel_left == 0.)
         {
             max_y = b2.max()[1] - (b2.max()[1] - b2.min()[1]) * gamma_scaling_left; // left
-        } 
+        }
         else
-        { 
+        {
             max_y = channel_left;
-        } 
+        }
 
         if (verbose){
             if (channel_left != 0.)
             {
                 std::cout << "\near channel entrance left:   "
-                    << max_y << "/0/0 " << unit << " (y/x/z)" << std::endl; 
+                    << max_y << "/0/0 " << unit << " (y/x/z)" << std::endl;
             }
             else
-            { 
+            {
                 std::cout << "\nestimated ear channel entrance left:   "
                     << max_y << "/0/0 " << unit << " (y/x/z)" << std::endl;
-            } 
+            }
             if (channel_right != 0.)
             {
-                std::cout << "\near channel entrance right:   "
-                    << min_y << "/0/0 " << unit << " (y/x/z)" << std::endl; 
+                std::cout << "\near channel entrance right: "
+                    << min_y << "/0/0 " << unit << " (y/x/z)" << std::endl;
             }
             else
-            { 
-                std::cout << "\nestimated ear channel entrance left:   "
+            {
+                std::cout << "\nestimated ear channel entrance right: "
                     << min_y << "/0/0 " << unit << " (y/x/z)" << std::endl;
-            } 
+            }
         }
+        // HRTF-GRADING: end
 
         // now convert per-vertex curvature into target edge length
         for (auto v : mesh_.vertices())
         {
             Scalar c = vsizing_[v];
 
+            // HRTF-GRADING: Realization of Eq. (7)
             const Point& p = points_[v];
 
             if (ear != "none")
@@ -307,12 +312,15 @@ void SurfaceRemeshing::preprocessing(std::string ear,
                 float d_l_ear = p[1]-max_y;
 
                 // increase edge length at the cutting area to torso
+                // realization of factor 7.5 in Eq. (7) together with factor
+                // 1.5 below
                 if (p[2] < min_z and c > 100)
                 {
                     c /= 5;
                 }
 
-                // adjust edgelength based on distance to ipsilateral ear
+                // adjust edge length based on distance to ipsilateral ear
+                // Realization of Eq. (7)
                 if (ear == "right")
                 {
                     c = c /( 1.5 * sqrt(p[0]*p[0] + p[2]*p[2] + 10*d_r_ear*d_r_ear));
@@ -323,6 +331,7 @@ void SurfaceRemeshing::preprocessing(std::string ear,
                 }
 
             }
+            // HRTF-GRADING: end
 
             // get edge length from curvature
             const Scalar r = 1.0 / c;
@@ -340,8 +349,8 @@ void SurfaceRemeshing::preprocessing(std::string ear,
                 h = e * 3.0 / sqrt(3.0);
             }
 
-            // clamp to min. and max. edge length and set edgelength at contralateral ear
-            // to max
+            // HRTF-GRADING: clip to min. and max. edge length and set edge
+            // length at contralateral ear to max
             if (h < min_edge_length_)
                 h = min_edge_length_;
             else if (h > max_edge_length_)
@@ -350,6 +359,7 @@ void SurfaceRemeshing::preprocessing(std::string ear,
                 h = max_edge_length_;
             else if (ear == "left" && p[1] <= min_y)
                 h = max_edge_length_;
+            // HRTF-GRADING: end
 
             // store target edge length
             vsizing_[v] = h;
