@@ -41,7 +41,9 @@ public:
     //! \param use_projection use back-projection to the input surface
     void adaptive_remeshing(Scalar min_edge_length, Scalar max_edge_length,
                             Scalar approx_error, unsigned int iterations = 10,
-                            bool use_projection = true, std::string ear = "none",
+                            bool use_projection = true,
+                            std::string mode = "hybrid",
+                            std::string ear = "none",
                             Scalar channel_left = 0.,
                             Scalar channel_right = 0.,
                             Scalar gamma_scaling_left = 0.15,
@@ -49,8 +51,10 @@ public:
                             bool verbose = false);
 
 private:
-    void preprocessing(std::string ear, Scalar gamma_scaling_left = 0.15,
-                       Scalar gamma_scaling_right = 0.15, Scalar channel_left = 0.,
+    void preprocessing(std::string ear, std::string mode,
+                       Scalar gamma_scaling_left = 0.15,
+                       Scalar gamma_scaling_right = 0.15,
+                       Scalar channel_left = 0.,
                        Scalar channel_right = 0., bool verbose = false);
     void postprocessing();
 

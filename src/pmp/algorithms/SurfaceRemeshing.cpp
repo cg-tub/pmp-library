@@ -38,7 +38,7 @@ void SurfaceRemeshing::uniform_remeshing(Scalar edge_length,
     use_projection_ = use_projection;
     target_edge_length_ = edge_length;
 
-    preprocessing("none");
+    preprocessing("none", "hybrid");
 
     for (unsigned int i = 0; i < iterations; ++i)
     {
@@ -63,6 +63,7 @@ void SurfaceRemeshing::adaptive_remeshing(Scalar min_edge_length,
                                           Scalar approx_error,
                                           unsigned int iterations,
                                           bool use_projection,
+                                          std::string mode,
                                           std::string ear,
                                           Scalar channel_left,
                                           Scalar channel_right,
@@ -76,7 +77,8 @@ void SurfaceRemeshing::adaptive_remeshing(Scalar min_edge_length,
     approx_error_ = approx_error;
     use_projection_ = use_projection;
 
-    preprocessing(ear, channel_left, channel_right, gamma_scaling_left, gamma_scaling_right, verbose);
+    preprocessing(ear, mode, channel_left, channel_right,
+                  gamma_scaling_left, gamma_scaling_right, verbose);
 
     for (unsigned int i = 0; i < iterations; ++i)
     {
@@ -97,6 +99,7 @@ void SurfaceRemeshing::adaptive_remeshing(Scalar min_edge_length,
 }
 
 void SurfaceRemeshing::preprocessing(std::string ear,
+                                     std::string mode,
                                      Scalar channel_left,
                                      Scalar channel_right,
                                      Scalar gamma_scaling_left,

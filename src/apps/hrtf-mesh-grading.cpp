@@ -22,6 +22,7 @@ void usage_and_exit()
               << "Use this if the actual ear channel entrance position is not know and the graded mesh contains to large or too small elements in the vicinity of the ear channels. "
               << "Use the verbose flag to echo the gamma parameters. "
               << "The estimated positions should have slightly smaller absolute values than the actual ear channel entrances.\n"
+              << "-m mesh grading mode. 'hybrid' applies grading according to [1], 'distance' apples grading according to [2].\n"
               << "-i the path to the input mesh\n"
               << "-o the path to the output mesh\n"
               << "-v verbose mode to echo input parameters and report mesh statistics (optional)\n"
@@ -29,7 +30,8 @@ void usage_and_exit()
               << "Note\n----\n"
               << "Note the section 'Mesh Preparation' and 'Trouble Shooting' on https://github.com/cg-tub/hrtf_mesh_grading.\n\n"
               << "Reference\n---------\n"
-              << "T. Palm, S. Koch, F. Brinkmann, and M. Alexa, “Curvature-adaptive mesh grading for numerical approximation of head-related transfer functions,” in DAGA 2021, Vienna, Austria, pp. 1111-1114.\n\n";
+              << "[1] T. Palm, S. Koch, F. Brinkmann, and M. Alexa, “Curvature-adaptive mesh grading for numerical approximation of head-related transfer functions,” in DAGA 2021, Vienna, Austria, pp. 1111-1114.\n"
+              << "[2] H. Ziegelwanger, W. Kreuzer, and P. Majdak, “A-priori mesh grading for the numerical calculation of the head-related transfer functions,” Applied Acoustics 114:99-110, 2021. doi: 10.1016/j.apacoust.2016.07.005\n\n";;
 
     exit(1);
 }
@@ -46,10 +48,11 @@ int main(int argc, char** argv)
     float gamma_scaling_left = 2.;
     float gamma_scaling_right = 2.;
     const char* ear = nullptr;
+    std::string mode = "hybrid";
 
     // parse command line parameters ------------------------------------------
     int c;
-    while ((c = getopt(argc, argv, "x:y:e:s:l:r:g:h:i:o:vi:bi:")) != -1)
+    while ((c = getopt(argc, argv, "x:y:e:s:l:r:g:h:m:i:o:vi:bi:")) != -1)
     {
         switch (c)
         {
@@ -83,6 +86,10 @@ int main(int argc, char** argv)
 
             case 'h':
                 gamma_scaling_right = std::stof(optarg);
+                break;
+
+            case 'm':
+                mode = optarg;
                 break;
 
             case 'i':
@@ -130,6 +137,7 @@ int main(int argc, char** argv)
     if (verbose)
     {   std::cout << "\ninput: " << input << std::endl;
         std::cout << "output: " << output << std::endl;
+        std::cout << "mode: " << mode << std::endl;
         std::cout << "side: " << ear << std::endl;
         std::cout << "min. edge length: " << min << std::endl;
         std::cout << "max. edge length: " << max << std::endl;
@@ -163,6 +171,7 @@ int main(int argc, char** argv)
                     err,  // approx. error
                     10U,
                     true,
+                    mode,
                     ear,
                     channel_left,
                     channel_right,
