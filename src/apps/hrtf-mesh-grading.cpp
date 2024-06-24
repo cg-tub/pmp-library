@@ -27,7 +27,7 @@ void usage_and_exit()
               << "-v verbose mode to echo input parameters and report mesh statistics (optional)\n"
               << "-b write the output mesh as binary data (optional)\n\n"
               << "Note\n----\n"
-              << "Note the section 'Mesh Preparation' on https://github.com/cg-tub/hrtf_mesh_grading.\n\n"
+              << "Note the section 'Mesh Preparation' and 'Trouble Shooting' on https://github.com/cg-tub/hrtf_mesh_grading.\n\n"
               << "Reference\n---------\n"
               << "T. Palm, S. Koch, F. Brinkmann, and M. Alexa, “Curvature-adaptive mesh grading for numerical approximation of head-related transfer functions,” in DAGA 2021, Vienna, Austria, pp. 1111-1114.\n\n";
 
@@ -68,7 +68,7 @@ int main(int argc, char** argv)
             case 's':
                 ear = optarg;
                 break;
-            
+
             case 'l':
                 channel_left = std::stof(optarg);
                 break;
@@ -138,7 +138,7 @@ int main(int argc, char** argv)
         {
             std::cout << "gamma scaling left/right: "
                 << gamma_scaling_left << "/" << gamma_scaling_right << std::endl;
-        } 
+        }
 
     }
 
