@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 
     // parse command line parameters ------------------------------------------
     int c;
-    while ((c = getopt(argc, argv, "x:y:e:s:l:r:g:h:m:i:o:vi:bi:")) != -1)
+    while ((c = getopt(argc, argv, "x:y:e:s:l:r:g:h:d:m:i:o:vi:bi:")) != -1)
     {
         switch (c)
         {
