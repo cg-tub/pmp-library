@@ -18,17 +18,20 @@ void usage_and_exit()
               << "-s the side at which the mesh resolution will be high ('left' or 'right')\n"
               << "-l, r the left and right y-coordinate of the actual ear channel entrances in the unit of the input mesh. "
               << "Note that the gamma scaling factors won't be used if the actual positions are given.\n"
-              << "-g, h the scaling factor to estimate the y-coordinate of the left (g) and right (h) ear channel entrance (gamma on p. 1112 in Palm et al.). The default is 0.15. "
+              << "-g, h the gamma scaling factor [1, p. 1112] to estimate the y-coordinate of the left (g) and right (h) ear channel entrance. The default is 0.15. "
               << "Use this if the actual ear channel entrance position is not know and the graded mesh contains to large or too small elements in the vicinity of the ear channels. "
-              << "Use the verbose flag to echo the gamma parameters. "
-              << "The estimated positions should have slightly smaller absolute values than the actual ear channel entrances.\n"
-              << "-m mesh grading mode. 'hybrid' applies grading according to [1], 'distance' apples grading according to [2].\n"
+              << "Use the verbose flag to echo the gamma parameters.\n"
+              << "-d the value in mm to which the distance computation in [2, Eq. (2)] is normalized. If this is not passed it is computed from the mesh as is in [2], which might not be the best option for head and torso meshes.\n"
+              << "-m mesh grading mode. 'hybrid' applies grading according to [1] (this ignores the -d parameter), 'distance' applies grading according to [2] (this ignores the -e parameter). The default is 'hybrid'\n"
               << "-i the path to the input mesh\n"
               << "-o the path to the output mesh\n"
               << "-v verbose mode to echo input parameters and report mesh statistics (optional)\n"
               << "-b write the output mesh as binary data (optional)\n\n"
               << "Note\n----\n"
-              << "Note the section 'Mesh Preparation' and 'Trouble Shooting' on https://github.com/cg-tub/hrtf_mesh_grading.\n\n"
+              << "- Mind the section 'Mesh Preparation' and 'Trouble Shooting' on https://github.com/cg-tub/hrtf_mesh_grading.\n"
+              << "- The parameters x, y, e, l, r, and d must be passed in mm. The unit of the mesh can be mm or m, which is automatically detected.\n"
+              << "- Use the verbose flag to print the assumed ear channel positions. For the hybrid grading [1] the estimated positions should be slightly more inwards than the actual position (smaller absolute y-position). For the distance based grading [2] it should be exact.\n"
+              << "- Passing anything other than 'left' or 'right' for the -s parameter will apply purely curvature based remeshing if the mode is 'hybrid' and use the minimum distance to the left and right ear channel for grading if the mode is 'distance'.\n\n"
               << "Reference\n---------\n"
               << "[1] T. Palm, S. Koch, F. Brinkmann, and M. Alexa, “Curvature-adaptive mesh grading for numerical approximation of head-related transfer functions,” in DAGA 2021, Vienna, Austria, pp. 1111-1114.\n"
               << "[2] H. Ziegelwanger, W. Kreuzer, and P. Majdak, “A-priori mesh grading for the numerical calculation of the head-related transfer functions,” Applied Acoustics 114:99-110, 2021. doi: 10.1016/j.apacoust.2016.07.005\n\n";;
@@ -47,6 +50,7 @@ int main(int argc, char** argv)
     float channel_right = 0.;
     float gamma_scaling_left = 2.;
     float gamma_scaling_right = 2.;
+    float d_max = 0.;
     const char* ear = nullptr;
     std::string mode = "hybrid";
 
@@ -86,6 +90,10 @@ int main(int argc, char** argv)
 
             case 'h':
                 gamma_scaling_right = std::stof(optarg);
+                break;
+
+            case 'd':
+                d_max = std::stof(optarg);
                 break;
 
             case 'm':
@@ -171,8 +179,9 @@ int main(int argc, char** argv)
                     err,  // approx. error
                     10U,
                     true,
-                    mode,
                     ear,
+                    mode,
+                    d_max,
                     channel_left,
                     channel_right,
                     gamma_scaling_left, gamma_scaling_right,

@@ -38,7 +38,7 @@ void SurfaceRemeshing::uniform_remeshing(Scalar edge_length,
     use_projection_ = use_projection;
     target_edge_length_ = edge_length;
 
-    preprocessing("none", "hybrid");
+    preprocessing("none");
 
     for (unsigned int i = 0; i < iterations; ++i)
     {
@@ -63,8 +63,9 @@ void SurfaceRemeshing::adaptive_remeshing(Scalar min_edge_length,
                                           Scalar approx_error,
                                           unsigned int iterations,
                                           bool use_projection,
-                                          std::string mode,
                                           std::string ear,
+                                          std::string mode,
+                                          Scalar d_max,
                                           Scalar channel_left,
                                           Scalar channel_right,
                                           Scalar gamma_scaling_left,
@@ -77,8 +78,19 @@ void SurfaceRemeshing::adaptive_remeshing(Scalar min_edge_length,
     approx_error_ = approx_error;
     use_projection_ = use_projection;
 
-    preprocessing(ear, mode, channel_left, channel_right,
-                  gamma_scaling_left, gamma_scaling_right, verbose);
+    if (mode == "hybrid"){
+        preprocessing(ear, channel_left, channel_right,
+                      gamma_scaling_left, gamma_scaling_right, verbose);
+    }
+    else if (mode == "distance"){
+        preprocessing_distance(ear, channel_left, channel_right,
+                               gamma_scaling_left, gamma_scaling_right, d_max,
+                               verbose);
+    }
+    else{
+        throw InvalidInputException(
+            "Invalid mode! Mode must be 'hybrid' or 'distance'");
+    }
 
     for (unsigned int i = 0; i < iterations; ++i)
     {
@@ -99,7 +111,6 @@ void SurfaceRemeshing::adaptive_remeshing(Scalar min_edge_length,
 }
 
 void SurfaceRemeshing::preprocessing(std::string ear,
-                                     std::string mode,
                                      Scalar channel_left,
                                      Scalar channel_right,
                                      Scalar gamma_scaling_left,
@@ -189,6 +200,8 @@ void SurfaceRemeshing::preprocessing(std::string ear,
             max_edge_length_ *= 0.001;
             min_edge_length_ *= 0.001;
             approx_error_ *= 0.001;
+            channel_left *= .0001;
+            channel_right *= .0001;
         }
         // HRTF-GRADING: end
 
@@ -367,6 +380,301 @@ void SurfaceRemeshing::preprocessing(std::string ear,
             // store target edge length
             vsizing_[v] = h;
         }
+    }
+
+    if (use_projection_)
+    {
+        // build reference mesh
+        refmesh_ = new SurfaceMesh();
+        refmesh_->assign(mesh_);
+        SurfaceNormals::compute_vertex_normals(*refmesh_);
+        refpoints_ = refmesh_->vertex_property<Point>("v:point");
+        refnormals_ = refmesh_->vertex_property<Point>("v:normal");
+
+        // copy sizing field from mesh_
+        refsizing_ = refmesh_->add_vertex_property<Scalar>("v:sizing");
+        for (auto v : refmesh_->vertices())
+        {
+            refsizing_[v] = vsizing_[v];
+        }
+
+        // build kd-tree
+        kd_tree_ = new TriangleKdTree(*refmesh_, 0);
+    }
+}
+
+void SurfaceRemeshing::preprocessing_distance(std::string ear,
+                                              Scalar channel_left,
+                                              Scalar channel_right,
+                                              Scalar gamma_scaling_left,
+                                              Scalar gamma_scaling_right,
+                                              Scalar d_max,
+                                              bool verbose)
+{
+    // HRTF-GRADING: These comments mark (all ?) custom changes
+
+    // properties
+    vfeature_ = mesh_.vertex_property<bool>("v:feature", false);
+    efeature_ = mesh_.edge_property<bool>("e:feature", false);
+    vlocked_ = mesh_.add_vertex_property<bool>("v:locked", false);
+    elocked_ = mesh_.add_edge_property<bool>("e:locked", false);
+    vsizing_ = mesh_.add_vertex_property<Scalar>("v:sizing");
+
+    // lock unselected vertices if some vertices are selected
+    auto vselected = mesh_.get_vertex_property<bool>("v:selected");
+    if (vselected)
+    {
+        bool has_selection = false;
+        for (auto v : mesh_.vertices())
+        {
+            if (vselected[v])
+            {
+                has_selection = true;
+                break;
+            }
+        }
+
+        if (has_selection)
+        {
+            for (auto v : mesh_.vertices())
+            {
+                vlocked_[v] = !vselected[v];
+            }
+
+            // lock an edge if one of its vertices is locked
+            for (auto e : mesh_.edges())
+            {
+                elocked_[e] = (vlocked_[mesh_.vertex(e, 0)] ||
+                               vlocked_[mesh_.vertex(e, 1)]);
+            }
+        }
+    }
+
+    // lock feature corners
+    for (auto v : mesh_.vertices())
+    {
+        if (vfeature_[v])
+        {
+            int c = 0;
+            for (auto h : mesh_.halfedges(v))
+                if (efeature_[mesh_.edge(h)])
+                    ++c;
+
+            if (c != 2)
+                vlocked_[v] = true;
+        }
+    }
+
+    // compute sizing field
+
+    // compute curvature for all mesh vertices, using cotan or Cohen-Steiner
+    // don't use two-ring neighborhood, since we otherwise compute
+    // curvature over sharp features edges, leading to high curvatures.
+    // prefer tensor analysis over cotan-Laplace, since the former is more
+    // robust and gives better results on the boundary.
+    SurfaceCurvature curv(mesh_);  //ToDo: Delete?
+    curv.analyze_tensor(1, true);  //ToDo: Delete?
+
+    auto bb = mesh_.bounds();
+    std::string unit = "mm";
+    BoundingBox b2;
+
+    // HRTF-GRADING: check the size of head to determine the unit
+    if ((bb.max()[1] - bb.min()[1]) < 1.0 )
+    {
+        unit = "m";
+        max_edge_length_ *= 0.001;
+        min_edge_length_ *= 0.001;
+        approx_error_ *= 0.001;
+        channel_left *= 0.001;
+        channel_right *= 0.001;
+    }
+    // HRTF-GRADING: end
+
+    // HRTF-GRADING: create a smaller bounding box close to the ears.
+    // this is necessary for head+torso mesh, because otherwise the
+    // shoulders would determine the max bounding box
+    if (ear != "none")
+    {
+        for (auto p : mesh_.positions())
+        {
+            if ((p[2] > -0.05 and unit == "m") or (p[2] > -50.0 and unit == "mm"))
+            {
+                b2 += p;
+            }
+        }
+    }
+    // HRTF-GRADING: end
+
+    // use vsizing_ to store/smooth curvatures to avoid another vertex property
+
+    // curvature values for feature vertices and boundary vertices
+    // are not meaningful. mark them as negative values.
+    //ToDo: Delete?
+    for (auto v : mesh_.vertices())
+    {
+        if (mesh_.is_boundary(v) || (vfeature_ && vfeature_[v]))
+            vsizing_[v] = -1.0;
+        else
+            vsizing_[v] = curv.max_abs_curvature(v);
+    }
+
+    // curvature values might be noisy. smooth them.
+    // don't consider feature vertices' curvatures.
+    // don't consider boundary vertices' curvatures.
+    // do this for two iterations, to propagate curvatures
+    // from non-feature regions to feature vertices.
+    //ToDo: Delete?
+    for (int iters = 0; iters < 2; ++iters)
+    {
+        for (auto v : mesh_.vertices())
+        {
+            Scalar w, ww = 0.0;
+            Scalar c, cc = 0.0;
+
+            for (auto h : mesh_.halfedges(v))
+            {
+                c = vsizing_[mesh_.to_vertex(h)];
+                if (c > 0.0)
+                {
+                    w = std::max(0.0, cotan_weight(mesh_, mesh_.edge(h)));
+                    ww += w;
+                    cc += w * c;
+                }
+            }
+
+            if (ww)
+                cc /= ww;
+            vsizing_[v] = cc;
+        }
+    }
+
+    // HRTF-GRADING: approximate the blocked ear canal positions
+    float min_y;
+    float max_y;
+    if (channel_right == 0.)
+    {
+        min_y = b2.min()[1] + (b2.max()[1] - b2.min()[1]) * gamma_scaling_right; // right
+    }
+    else
+    {
+        min_y = channel_right;
+    }
+    if (channel_left == 0.)
+    {
+        max_y = b2.max()[1] - (b2.max()[1] - b2.min()[1]) * gamma_scaling_left; // left
+    }
+    else
+    {
+        max_y = channel_left;
+    }
+
+    if (verbose){
+        if (channel_left != 0.)
+        {
+            std::cout << "\near channel entrance left:   "
+                << max_y << "/0/0 " << unit << " (y/x/z)";
+        }
+        else
+        {
+            std::cout << "\nestimated ear channel entrance left:   "
+                << max_y << "/0/0 " << unit << " (y/x/z)";
+        }
+        if (channel_right != 0.)
+        {
+            std::cout << "\near channel entrance right: "
+                << min_y << "/0/0 " << unit << " (y/x/z)" << std::endl;
+        }
+        else
+        {
+            std::cout << "\nestimated ear channel entrance right: "
+                << min_y << "/0/0 " << unit << " (y/x/z)" << std::endl;
+        }
+    }
+
+    // Find maximum distance (d_max in Ziegelwanger) and allow
+    // grading to have fine resolution at both ears
+    float d_l_max, d_r_max = 0;
+    float d_left, d_right = 0;
+
+    if (d_max == 0.){
+        for (auto v : mesh_.vertices())
+        {
+            const Point& p = points_[v];
+
+            // y distance of vertex to left and right ear canal
+            float d_r_ear = p[1]-min_y;
+            float d_l_ear = p[1]-max_y;
+
+            // compute the distance of current vertex to the ear canals
+            d_left = sqrt(p[0]*p[0] + p[2]*p[2] + d_l_ear*d_l_ear);
+            d_right = sqrt(p[0]*p[0] + p[2]*p[2] + d_r_ear*d_r_ear);
+
+            // and update maximum distances if necessary
+            if (d_left > d_l_max){
+                d_l_max = d_left;
+            }
+            if (d_right > d_r_max){
+                d_r_max = d_right;
+            }
+        }
+
+        // Assign based on ear
+        if (ear == "left"){
+            d_max = d_l_max;
+        }
+        else if (ear == "right"){
+            d_max = d_r_max;
+        }
+        else {
+            d_max = std::max(d_l_max, d_r_max);
+        }
+    }
+    // convert unit of user passed parameter if required
+    else {
+        if (unit == "m"){
+            d_max *= 0.001;
+        }
+    }
+
+    // echo distance
+    if (verbose){
+        std::cout << "reference distance d: " <<
+            d_max << " " << unit << std::endl;
+    }
+
+    // compute target edge length
+    float mu, d, h = 0;
+    for (auto v : mesh_.vertices())
+    {
+        const Point& p = points_[v];
+
+        // y distance of vertex to left and right ear canal
+        float d_r_ear = p[1]-min_y;
+        float d_l_ear = p[1]-max_y;
+
+        // compute the normalized distance of current vertex to the ear canals
+        // Eq. (2) in Ziegelwanger
+        d_left = sqrt(p[0]*p[0] + p[2]*p[2] + d_l_ear*d_l_ear) / d_max;
+        d_right = sqrt(p[0]*p[0] + p[2]*p[2] + d_r_ear*d_r_ear) / d_max;
+
+        if (ear == "left"){
+            d = d_left;
+        }
+        else if (ear == "right"){
+            d = d_right;
+        }
+        else {
+            d = std::min(d_left, d_right);
+        }
+
+        // compute mu for squared cosine law. Eq. (4) in Ziegelwanger
+        float cos_d = std::cos(M_PI * d / 2);
+        mu = 1 - cos_d * cos_d;
+
+        // store target edge length
+        h = min_edge_length_ + (max_edge_length_ - min_edge_length_) * mu;
+        vsizing_[v] = h;
     }
 
     if (use_projection_)
