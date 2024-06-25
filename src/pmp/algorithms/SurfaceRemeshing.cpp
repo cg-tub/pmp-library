@@ -644,7 +644,7 @@ void SurfaceRemeshing::preprocessing_distance(std::string ear,
     }
 
     // compute target edge length
-    float mu, d, h = 0;
+    float mu, d_norm, h = 0;
     for (auto v : mesh_.vertices())
     {
         const Point& p = points_[v];
@@ -659,17 +659,25 @@ void SurfaceRemeshing::preprocessing_distance(std::string ear,
         d_right = sqrt(p[0]*p[0] + p[2]*p[2] + d_r_ear*d_r_ear) / d_max;
 
         if (ear == "left"){
-            d = d_left;
+            d_norm = d_left;
         }
         else if (ear == "right"){
-            d = d_right;
+            d_norm = d_right;
         }
         else {
-            d = std::min(d_left, d_right);
+            d_norm = std::min(d_left, d_right);
+        }
+
+        // clip to 0 - 1 (might be outside range if custom d_max was passed)
+        if (d_norm > 1.0){
+            d_norm = 1.0;
+        }
+        else if (d_norm < 0.0){
+            d_norm = 0.0;
         }
 
         // compute mu for squared cosine law. Eq. (4) in Ziegelwanger
-        float cos_d = std::cos(M_PI * d / 2);
+        float cos_d = std::cos(M_PI * d_norm / 2);
         mu = 1 - cos_d * cos_d;
 
         // store target edge length
