@@ -465,21 +465,11 @@ void SurfaceRemeshing::preprocessing_distance(std::string ear,
         }
     }
 
-    // compute sizing field
-
-    // compute curvature for all mesh vertices, using cotan or Cohen-Steiner
-    // don't use two-ring neighborhood, since we otherwise compute
-    // curvature over sharp features edges, leading to high curvatures.
-    // prefer tensor analysis over cotan-Laplace, since the former is more
-    // robust and gives better results on the boundary.
-    SurfaceCurvature curv(mesh_);  //ToDo: Delete?
-    curv.analyze_tensor(1, true);  //ToDo: Delete?
-
+    // HRTF-GRADING: check the size of head to determine the unit
     auto bb = mesh_.bounds();
     std::string unit = "mm";
     BoundingBox b2;
 
-    // HRTF-GRADING: check the size of head to determine the unit
     if ((bb.max()[1] - bb.min()[1]) < 1.0 )
     {
         unit = "m";
@@ -505,49 +495,6 @@ void SurfaceRemeshing::preprocessing_distance(std::string ear,
         }
     }
     // HRTF-GRADING: end
-
-    // use vsizing_ to store/smooth curvatures to avoid another vertex property
-
-    // curvature values for feature vertices and boundary vertices
-    // are not meaningful. mark them as negative values.
-    //ToDo: Delete?
-    for (auto v : mesh_.vertices())
-    {
-        if (mesh_.is_boundary(v) || (vfeature_ && vfeature_[v]))
-            vsizing_[v] = -1.0;
-        else
-            vsizing_[v] = curv.max_abs_curvature(v);
-    }
-
-    // curvature values might be noisy. smooth them.
-    // don't consider feature vertices' curvatures.
-    // don't consider boundary vertices' curvatures.
-    // do this for two iterations, to propagate curvatures
-    // from non-feature regions to feature vertices.
-    //ToDo: Delete?
-    for (int iters = 0; iters < 2; ++iters)
-    {
-        for (auto v : mesh_.vertices())
-        {
-            Scalar w, ww = 0.0;
-            Scalar c, cc = 0.0;
-
-            for (auto h : mesh_.halfedges(v))
-            {
-                c = vsizing_[mesh_.to_vertex(h)];
-                if (c > 0.0)
-                {
-                    w = std::max(0.0, cotan_weight(mesh_, mesh_.edge(h)));
-                    ww += w;
-                    cc += w * c;
-                }
-            }
-
-            if (ww)
-                cc /= ww;
-            vsizing_[v] = cc;
-        }
-    }
 
     // HRTF-GRADING: approximate the blocked ear canal positions
     float min_y;
