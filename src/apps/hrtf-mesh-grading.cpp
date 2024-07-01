@@ -22,7 +22,7 @@ void usage_and_exit()
               << "Use this if the actual ear channel entrance position is not know and the graded mesh contains to large or too small elements in the vicinity of the ear channels. "
               << "Use the verbose flag to echo the gamma parameters.\n"
               << "-d the value in mm to which the distance computation in [2, Eq. (2)] is normalized. If this is not passed it is computed from the mesh as is in [2], which might not be the best option for head and torso meshes.\n"
-              << "-m mesh grading mode. 'hybrid' applies grading according to [1] (this ignores the -d parameter), 'distance' applies grading according to [2] (this ignores the -e parameter). The default is 'hybrid'\n"
+              << "-m mesh grading mode. 'hybrid' applies grading according to [1] (this ignores the -d parameter), 'distance' applies squared cosine grading according to [2] (this ignores the -e parameter). The default is 'hybrid'\n"
               << "-i the path to the input mesh\n"
               << "-o the path to the output mesh\n"
               << "-v verbose mode to echo input parameters and report mesh statistics (optional)\n"
